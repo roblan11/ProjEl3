@@ -6,16 +6,16 @@ object Float32 {
     val bits: Int = Float.floatToRawIntBits(x)
 
     val sign:     Int = (bits & 0x80000000) >>> 31
-    val exponent: Int = (bits & 0x7f800000) >>> 23
+    val exponent: Int = ((bits & 0x7f800000) >>> 23) - 127
     val mantissa: Int = (bits & 0x007fffff) >>>  0
 
     new Float32(sign, exponent, mantissa)
   }
 
   def float32ToFloat(f: Float32): Float = {
-    val sign:     Int = f.sign     <<< 31
-    val exponent: Int = f.exponent <<< 23
-    val mantissa: Int = f.mantissa <<<  0
+    val sign:     Int = f.sign     << 31
+    val exponent: Int = (f.exponent + 127) << 23
+    val mantissa: Int = f.mantissa <<  0
 
     val bits: Int = sign | exponent | mantissa
 
@@ -28,6 +28,21 @@ class Float32(val sign: Int, val exponent: Int, val mantissa: Int) {
 
   override def toString(): String = {
     s"Sign: ${sign.toHexString}\tExponent: ${exponent.toHexString}\tMantissa: ${mantissa.toHexString}"
+  }
+
+  def *(that: Float32): Float32 = {
+    var mantissa  = this.mantissa + that.mantissa
+    var blocker   = 0x00400000
+    for(i <- 0 until 23) {
+      if( (this.mantissa & blocker) != 0 ) {
+        mantissa += (that.mantissa >>> (i + 1) )
+      }
+      blocker = blocker >>> 1
+    }
+    val sign      = this.sign ^ that.sign
+    val exponent  = this.exponent + that.exponent
+
+    new Float32(sign, exponent, mantissa)
   }
 
 }
