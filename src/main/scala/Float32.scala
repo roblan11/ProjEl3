@@ -33,14 +33,19 @@ class Float32(val sign: Int, val exponent: Int, val mantissa: Int) {
   def *(that: Float32): Float32 = {
     var mantissa  = this.mantissa + that.mantissa
     var blocker   = 0x00400000
-    for(i <- 0 until 23) {
+    for(i <- 1 to 23) {
       if( (this.mantissa & blocker) != 0 ) {
-        mantissa += (that.mantissa >>> (i + 1) )
+        mantissa += (that.mantissa >>> i )
       }
       blocker = blocker >>> 1
     }
     val sign      = this.sign ^ that.sign
-    val exponent  = this.exponent + that.exponent
+    var exponent  = this.exponent + that.exponent
+
+    if( (mantissa & 0x00800000) != 0) {
+      exponent += 1
+      mantissa = (mantissa & 0x007fffff) / 2
+    }
 
     new Float32(sign, exponent, mantissa)
   }
