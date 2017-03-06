@@ -30,6 +30,8 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
     s"Sign: ${sign.toHexString}\tExponent: ${exponent.toHexString}\tMantissa: ${mantissa.toHexString}"
   }
 
+  def toFloat(): Float = Float32.float32ToFloat(this)
+
   def *(that: Float32): Float32 = {
     val sign     :Int = this.sign ^ that.sign
     var exponent :Int = this.exponent + that.exponent
@@ -74,6 +76,7 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
     }
 
     new Float32(sign, exponent, mantissa & 0x007fffff)
+  }
 
   def ADD(x: Int, y: Int): Int = x + y
   def SUB(x: Int, y: Int): (Int, Boolean, Boolean) = {
@@ -90,11 +93,34 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
   def SHIFTR(x: Int, p: Int): (Int, Int) = ((p << 31) | (x >>> 1), x & 0x1)
   def SHIFTL(x: Int, p: Int): (Int, Int) = ((x << 1) | p, (x & 0x80000000) >>> 31)
 
-  // Suppose that both numbers are positive and that the second one is the smallest
+  def ~<(that: Float32): Boolean =
+    LT(this.exponent, that.exponent) || LT(this.mantissa, that.mantissa)
+
+  // Normalize the numbers for the internal __add
   def +(that: Float32): Float32 = {
+    var a: Float32 = this
+    var b: Float32 = that
+
+    // Reorder the numbers: bigger first
+    if (this ~< that) {
+      a = that
+      b = this
+    }
+
+    a __add b
+  }
+
+  // Suppose that both numbers are positive and that the second one is the smallest
+  def __add(that: Float32): Float32 = {
     // Add MSB
     this.mantissa = this.mantissa | (1 << 23)
     that.mantissa = that.mantissa | (1 << 23)
+
+    if (this.sign == 1)
+      this.mantissa = -this.mantissa
+
+    if (that.sign == 1)
+      that.mantissa = -that.mantissa
 
     // Equalize the exponent
     while (!EQ(this.exponent, that.exponent)) {
@@ -102,7 +128,7 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
       that.exponent = ADD(that.exponent, 1)
     }
 
-    var sign = 0
+    var sign = this.sign & that.sign
     var exponent = this.exponent
     var mantissa = ADD(this.mantissa, that.mantissa)
 
@@ -119,10 +145,10 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
     }
 
     // Remove MSB
-    mantissa = mantissa ^ (1 << 23)
+    mantissa = mantissa & 0x3fffff
 
-    this.mantissa = this.mantissa ^ (1 << 23)
-    that.mantissa = that.mantissa ^ (1 << 23)
+    this.mantissa = this.mantissa & 0x3fffff
+    that.mantissa = that.mantissa & 0x3fffff
 
     new Float32(sign, exponent, mantissa)
   }
