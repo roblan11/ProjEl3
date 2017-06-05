@@ -42,15 +42,45 @@ object Main {
 
     println(s"Enter the first $n samples")
 
+    /* ADD $n, 4, 0 */
+    /* :start_first_loop
+     * CMPEQ $n, 0
+     * JMP :end_first_loop
+     * READ $val
+     * ADDF $oldAverage, $oldAverage, $val
+     * SUB $n, $n, 1
+     * JMP :start_first_loop
+     * :end_first_loop
+     */
     for (i <- 1 to n)
       oldAverage = oldAverage + Float32.floatToFloat32(Console.readFloat)
 
+    /* DIVF $oldAverage, $oldAverage, 4 */
     oldAverage = oldAverage / nf
 
     println(s"Average: ${Float32.float32ToFloat(oldAverage)}")
 
+    /* :main_loop */
     while (true) {
+      /* ADD $n, 4, 0
+       * ADD $average, 0, 0
+       * ADD $variance, 0, 0
+       */
+      average = Float32.floatToFloat32(0.0f)
+      variance = Float32.floatToFloat32(0.0f)
+
       println(s"Enter $n samples")
+      /* :start_inner_loop
+       * CMPEQ $n, 0
+       * JMP :end_inner_loop
+       * READ $value
+       * SUBF $tmp, $value, $oldAverage
+       * ADDF $average, $average, $value
+       * MULF $tmp, $tmp, $tmp
+       * ADDF $variance, $variance, $tmp
+       * JMP :start_inner_loop
+       * :end_inner_loop
+       */
       for (i <- 1 to n) {
         val value = Float32.floatToFloat32(Console.readFloat)
         val tmp = value - oldAverage
@@ -59,6 +89,10 @@ object Main {
         variance = variance + tmp * tmp
       }
 
+      /* DIVF $average, $average, 4
+       * DIVF $variance, $variance, 4
+       * CALL :sqrt_func ; inline code of sqrt here
+       */
       average = average / nf
       variance = variance / nf
       variance = variance.SQRT
@@ -68,6 +102,7 @@ object Main {
 
       // Process and act
 
+      // ADD $oldAverage, $average, 0
       oldAverage = average
     }
   }
