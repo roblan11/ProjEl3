@@ -277,6 +277,18 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
       exponent = ADD(exponent, 1)
     }
 
+    /* :start_loop_msb
+     * CMPEQ $mantissa, 0
+     * JMP :end_loop_msb
+     * SHIFTL $tmp, 1, 23
+     * AND $tmp, $mantissa, $tmp
+     * CMPNE $tmp, 0
+     * JMP :end_loop_msb
+     * SHIFTL $mantissa, $mantissa, 1
+     * SUB $exponent, $exponent, 1
+     * JMP :start_loop_msb
+     * :end_loop_msb
+     */
     // Find new MSB
     while ((mantissa & (1 << 23)) == 0 && mantissa != 0) {
       mantissa = SHIFTL(mantissa, 0)._1
