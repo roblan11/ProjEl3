@@ -40,12 +40,17 @@ object Main {
     var average: Float32 = Float32.floatToFloat32(0.0f)
     var variance: Float32 = Float32.floatToFloat32(0.0f)
 
+    println(s"Enter the first $n samples")
+
     for (i <- 1 to n)
       oldAverage = oldAverage + Float32.floatToFloat32(Console.readFloat)
 
     oldAverage = oldAverage / nf
 
+    println(s"Average: $oldAverage")
+
     while (true) {
+      println(s"Enter $n samples")
       for (i <- 1 to n) {
         val value = Float32.floatToFloat32(Console.readFloat)
         val tmp = value - oldAverage
