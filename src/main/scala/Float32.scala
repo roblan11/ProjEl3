@@ -171,10 +171,7 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
   }
 
   def -(that: Float32): Float32 = {
-    /* SUB $signB, $signB, 1 */
-    that.sign = 1 - that.sign
-    /* JMP :plus_func; tailrec call to `+` */
-    this + that
+    Float32.floatToFloat32(Float32.float32ToFloat(this) - Float32.float32ToFloat(that))
   }
 
   // Normalize the numbers for the internal __add
@@ -238,20 +235,42 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
     if (that.sign == 1)
       that.mantissa = -that.mantissa
 
+    /* :start_of_exp
+     * CMPEQ $exponentA, $exponentB
+     * JMP :end_of_exp
+     * SHIFTR $mantissaA, $mantissaA, 1
+     * ADD $exponentA, $exponentA, 1
+     * JMP :start_of_exp
+     * :end_of_exp
+     */
     // Equalize the exponent
     while (!EQ(this.exponent, that.exponent)) {
       that.mantissa = SHIFTR(that.mantissa, 0)._1
       that.exponent = ADD(that.exponent, 1)
     }
 
+    /* ADD $sign, $signA, 0
+     * ADD $exponent, $exponentA, 0
+     * ADD $mantissa, $mantissaA, $mantissaB
+     */
     var sign = this.sign
     var exponent = this.exponent
     var mantissa = ADD(this.mantissa, that.mantissa)
 
-
+    /* CMPLT $mantissa, 0
+     * SUB $mantissa, 0, $mantissa
+     */
     if (mantissa < 0)
       mantissa = -mantissa
 
+    /* SHIFTL $tmp, 1, 24
+     * AND $tmp, $mantissa, $tmp
+     * CMPEQ $tmp, 0
+     * JMP :after_if_overflow
+     * SHIFTR $mantissa, $mantissa, 1
+     * ADD $exponent, $exponent, 1
+     * :after_if_overflow
+     */
     // Check overflow
     if ((mantissa & (1 << 24)) != 0) {
       mantissa = SHIFTR(mantissa, 0)._1
@@ -276,14 +295,11 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
   def SQRT(): Float32 = {
     var n: Int = 10
     var x: Float32 = this
-    var thisf: Float = Float32.float32ToFloat(this)
-    var xf: Float = thisf
     var two: Float32 = Float32.floatToFloat32(2.0f)
 
     // Newton's method
     while (n > 0) {
       x = (x + this / x) / two
-      xf = (xf + thisf / xf) / 2.0f
       n -= 1;
     }
 
