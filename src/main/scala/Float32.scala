@@ -7,7 +7,7 @@ object Float32 {
 
     val sign:     Int = (bits & 0x80000000) >>> 31
     val exponent: Int = ((bits & 0x7f800000) >>> 23) - 127
-    val mantissa: Int = (bits & 0x007fffff) >>>  0
+    val mantissa: Int = (bits & 0x007fffff) >>> 0
 
     new Float32(sign, exponent, mantissa)
   }
@@ -93,8 +93,15 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
   def SHIFTR(x: Int, p: Int): (Int, Int) = ((p << 31) | (x >>> 1), x & 0x1)
   def SHIFTL(x: Int, p: Int): (Int, Int) = ((x << 1) | p, (x & 0x80000000) >>> 31)
 
-  def ~<(that: Float32): Boolean =
-    LT(this.exponent, that.exponent) || LT(this.mantissa, that.mantissa)
+  def ~<(that: Float32): Boolean = {
+    LT(this.exponent, that.exponent) ||
+      (EQ(this.exponent, that.exponent) && LT(this.mantissa, that.mantissa))
+  }
+
+  def -(that: Float32): Float32 = {
+    that.sign = 1 - that.sign
+    this + that
+  }
 
   // Normalize the numbers for the internal __add
   def +(that: Float32): Float32 = {
@@ -107,7 +114,16 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
       b = this
     }
 
-    a __add b
+    if (this.sign == 1 && that.sign == 1) {
+      this.sign = 0
+      that.sign = 0
+      val c = a __add b
+      c.sign = 1
+
+      c
+    } else {
+      a __add b
+    }
   }
 
   // Suppose that both numbers are positive and that the second one is the smallest
@@ -128,9 +144,13 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
       that.exponent = ADD(that.exponent, 1)
     }
 
-    var sign = this.sign & that.sign
+    var sign = this.sign
     var exponent = this.exponent
     var mantissa = ADD(this.mantissa, that.mantissa)
+
+
+    if (mantissa < 0)
+      mantissa = -mantissa
 
     // Check overflow
     if ((mantissa & (1 << 24)) != 0) {
@@ -145,12 +165,29 @@ class Float32(var sign: Int, var exponent: Int, var mantissa: Int) {
     }
 
     // Remove MSB
-    mantissa = mantissa & 0x3fffff
+    mantissa = mantissa & 0x7fffff
 
-    this.mantissa = this.mantissa & 0x3fffff
-    that.mantissa = that.mantissa & 0x3fffff
+    this.mantissa = this.mantissa & 0x7fffff
+    that.mantissa = that.mantissa & 0x7fffff
 
     new Float32(sign, exponent, mantissa)
+  }
+
+  def SQRT(): Float32 = {
+    var n: Int = 10
+    var x: Float32 = this
+    var thisf: Float = Float32.float32ToFloat(this)
+    var xf: Float = thisf
+    var two: Float32 = Float32.floatToFloat32(2.0f)
+
+    // Newton's method
+    while (n > 0) {
+      x = (x + this / x) / two
+      xf = (xf + thisf / xf) / 2.0f
+      n -= 1;
+    }
+
+    x
   }
 
 }
