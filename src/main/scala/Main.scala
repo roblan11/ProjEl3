@@ -47,7 +47,7 @@ object Main {
 
     oldAverage = oldAverage / nf
 
-    println(s"Average: $oldAverage")
+    println(s"Average: ${Float32.floatToFloat32(oldAverage)}")
 
     while (true) {
       println(s"Enter $n samples")
