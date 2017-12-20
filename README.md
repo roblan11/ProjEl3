@@ -2,5 +2,5 @@
 Implementation simulé fait en Scala pour algèbre avec des "floating point numbers" en binaire 
 
 ### Groupe:
-* Thierry Treyer
-* Robin Lang
+* [ttreyer](https://github.com/ttreyer)
+* [roblan11](https://github.com/roblan11)
